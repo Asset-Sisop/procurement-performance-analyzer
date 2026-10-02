@@ -54,6 +54,8 @@ uvicorn app:app --reload
 
 Open `http://127.0.0.1:8000`.
 
+Dashboard: `http://127.0.0.1:8000/dashboard`
+
 Swagger/OpenAPI: `http://127.0.0.1:8000/docs`
 
 ## API
