@@ -1,104 +1,171 @@
 # Procurement Performance Analyzer
 
-> Demonstration MVP for instrumental analysis and optimization of the electronic procurement application-submission process.
+**Customer-ready MVP for technical audit and performance optimization of electronic procurement application submission workflows.**
 
-## Purpose
+## What this product does
 
-The prototype demonstrates the first stage of a technical performance audit: decompose a submission workflow into measurable operations, identify bottlenecks, and model optimization hypotheses.
+The product provides an instrumented workflow for:
 
-**Methodology:** `Baseline → Instrumentation → Bottleneck Analysis → Optimization → Benchmark → Technical Conclusion`
+1. establishing a baseline;
+2. collecting browser/network telemetry;
+3. calculating latency statistics;
+4. identifying bottlenecks;
+5. correlating technical evidence with business stages;
+6. modelling optimization hypotheses;
+7. comparing repeated benchmark runs;
+8. generating a technical performance report.
 
-## What the MVP demonstrates
+### Product workflow
 
-- process decomposition into measurable stages;
-- baseline duration and bottleneck ranking;
-- contribution of each operation to total execution time;
-- classification of operations by browser, backend, network, data and EDS/cryptography;
-- identification of blocking and potentially parallelizable operations;
-- demonstration-only optimization hypotheses;
-- JSON API for submitting a custom benchmark;
-- interactive web interface and Swagger/OpenAPI documentation.
-
-## Architecture concept
-
-```mermaid
-flowchart LR
-    U[Operator / Test Scenario] --> T[Telemetry Collection]
-    T --> A[Performance Analyzer]
-    A --> B[Bottleneck Engine]
-    B --> O[Optimization Engine]
-    O --> R[Technical Conclusion]
-    T --> E[Browser / API / Network / EDS timings]
+```text
+Authorized test scenario
+        |
+        v
+Browser telemetry
+        |
+        v
+Performance analysis
+        |
+        +----> P50 / Median / P95 / Max
+        |
+        v
+Bottleneck identification
+        |
+        v
+Optimization hypotheses
+        |
+        v
+Before / After benchmark
+        |
+        v
+Technical conclusion
 ```
-
-## Demo
-
-The included scenario is synthetic and is intended to demonstrate the analysis pipeline. It is **not** a measurement of any production procurement platform.
-
-The current demo does not connect to a procurement platform and does not perform real application submission.
 
 ## Run locally
 
-```bash
+### 1. Create environment
+
+```powershell
 python -m venv .venv
-
-# Windows
-.venv\\Scripts\\activate
-
-# Linux/macOS
-source .venv/bin/activate
-
-pip install -r requirements.txt
-uvicorn app:app --reload
+.\.venv\Scripts\Activate.ps1
 ```
 
-Open `http://127.0.0.1:8000`.
+### 2. Install
 
-Dashboard: `http://127.0.0.1:8000/dashboard`
+```powershell
+pip install -r requirements.txt
+```
 
-Swagger/OpenAPI: `http://127.0.0.1:8000/docs`
+### 3. Run
+
+```powershell
+python -m uvicorn app:app --reload
+```
+
+Open:
+
+- Dashboard: http://127.0.0.1:8000/dashboard
+- Swagger: http://127.0.0.1:8000/docs
+- Health: http://127.0.0.1:8000/health
+
+## Browser telemetry
+
+Install:
+
+```powershell
+pip install -r requirements-telemetry.txt
+playwright install chromium
+```
+
+Run an authorized test URL:
+
+```powershell
+python playwright_capture.py https://example.test
+```
+
+Then upload the resulting `telemetry.json` through the Dashboard.
 
 ## API
 
-- `GET /health` — service health check
-- `GET /api/demo` — synthetic benchmark and analysis
-- `POST /api/analyze` — analyze a supplied benchmark
+- `GET /health`
+- `GET /api/demo`
+- `POST /api/analyze`
+- `POST /api/analyze-telemetry`
+- `POST /api/report`
 
-## From MVP to production audit
+## Demo mode vs real telemetry
 
-The next implementation layer is instrumentation of an **authorized test scenario** using permitted platform interaction mechanisms. Candidate telemetry includes:
+The dashboard has two modes.
 
-- DNS, TCP/TLS and HTTP timings;
-- request/response sizes, retries and timeouts;
-- API call sequence and dependencies;
-- document preparation and upload timings;
-- EDS data preparation and cryptographic operation timings;
-- server-side processing time where the platform exposes an observable timestamp;
-- repeated runs with min/median/average/P95/max statistics.
+### Synthetic demonstration
 
-## Security and compliance boundary
+The built-in benchmark uses synthetic business-stage data to demonstrate the analytical workflow. Its optimization percentage is a modelled hypothesis and **must not be presented as a measured production result**.
 
-The prototype intentionally contains no mechanisms for bypassing CAPTCHA, authentication, authorization, rate limits, anti-bot controls or other platform protections.
+### Real telemetry
 
-A production implementation should use only the procurement platform's official APIs, documented integration mechanisms, browser workflows available to an authorized user, and other explicitly permitted interaction methods.
+Upload a `telemetry.json` generated by the browser collector. The dashboard then calculates:
 
-## Important limitation
+- request count;
+- navigation duration;
+- minimum;
+- median;
+- mean;
+- P95;
+- maximum;
+- resource-type statistics;
+- slowest requests.
 
-The optimization coefficients in `optimize()` are **illustrative hypotheses only**. They must be replaced by measured values and validated through controlled benchmark runs before any performance target is stated.
+## Security boundary
 
-## Project structure
+Use only authorized accounts, environments and platform interaction mechanisms.
+
+This project does **not** implement or encourage:
+
+- CAPTCHA bypass;
+- authentication bypass;
+- authorization bypass;
+- rate-limit bypass;
+- anti-bot evasion;
+- EDS private-key extraction;
+- storage of passwords or session tokens.
+
+Telemetry should be sanitized before sharing with third parties.
+
+## Production path
+
+Before production use against a specific procurement platform:
+
+1. obtain explicit authorization and test access;
+2. define deterministic business-stage markers;
+3. collect repeated baseline runs;
+4. correlate browser requests with business stages;
+5. identify platform/server/network/client bottlenecks;
+6. implement only permitted optimizations;
+7. repeat the benchmark;
+8. produce a traceable technical conclusion.
+
+## Repository structure
 
 ```text
-.
-├── app.py
-├── requirements.txt
-├── sample_benchmark.json
-└── docs/
-    ├── architecture.md
-    ├── demo.md
-    └── methodology.md
+app.py                    # FastAPI application and dashboard
+telemetry.py              # telemetry model
+playwright_capture.py     # browser telemetry collector
+analyze_telemetry.py      # telemetry statistics
+scenario.py               # business-stage correlation
+benchmark.py              # repeated benchmark aggregation
+report.py                 # Markdown report generation
+dashboard.py              # dashboard data preparation
+sample_benchmark.json     # synthetic example
+tests/                    # automated tests
+docs/                     # methodology and production guidance
 ```
+
+## Status
+
+**MVP 1.0 — demonstration / pilot-ready.**
+
+It is ready to demonstrate the architecture and analytical workflow to a customer. A production deployment still requires integration with the customer's authorized procurement test environment.
 
 ## License
 
-MIT — see `LICENSE`.
+MIT.
