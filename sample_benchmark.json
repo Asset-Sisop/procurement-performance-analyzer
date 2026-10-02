@@ -1,0 +1,12 @@
+{
+  "stages": [
+    {"name":"Авторизация","category":"browser","duration_ms":820,"blocking":true,"parallelizable":false},
+    {"name":"GET данных участника","category":"backend","duration_ms":1450,"blocking":true,"parallelizable":true},
+    {"name":"Получение справочных данных","category":"backend","duration_ms":1850,"blocking":true,"parallelizable":true},
+    {"name":"Валидация документов","category":"data","duration_ms":2100,"blocking":true,"parallelizable":true},
+    {"name":"Загрузка документа №1","category":"network","duration_ms":3200,"blocking":true,"parallelizable":false},
+    {"name":"Криптографическая операция ЭЦП","category":"eds","duration_ms":2900,"blocking":true,"parallelizable":false},
+    {"name":"Отправка заявки","category":"network","duration_ms":2600,"blocking":true,"parallelizable":false},
+    {"name":"Server-side обработка","category":"backend","duration_ms":3600,"blocking":true,"parallelizable":false}
+  ]
+}
