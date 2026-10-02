@@ -135,9 +135,18 @@ def analyze_events(data: dict[str, Any]) -> dict[str, Any]:
             "max_ms": round(max(values), 2),
         }
 
+    waterfall = sorted(
+        [{
+            **event,
+            "end_ms": round(event["start_ms"] + event["duration_ms"], 2),
+        } for event in clean],
+        key=lambda x: x["start_ms"],
+    )
+
     return {
         "request_count": len(clean),
         "navigation_duration_ms": data.get("navigation_duration_ms"),
+        "waterfall": waterfall,
         "overall": {
             "min_ms": round(min(durations), 2) if durations else 0,
             "median_ms": round(statistics.median(durations), 2) if durations else 0,
@@ -325,6 +334,7 @@ function render(d,real=false){
  let html='<div class="grid">';
  if(real){
   const a=d.analysis; html+=metric('Requests',a.request_count);html+=metric('Navigation',((a.navigation_duration_ms||0)/1000).toFixed(2)+' s');html+=metric('Median request',a.overall.median_ms.toFixed(0)+' ms');html+=metric('P95 request',a.overall.p95_ms.toFixed(0)+' ms');html+='</div>';
+  html+='<div class="card"><h2>HTTP waterfall</h2>'+waterfall(a.waterfall)+'</div>';
   html+='<div class="card"><h2>Slowest requests</h2>'+tableSlow(a.slowest_requests)+'</div>';
   html+='<div class="card"><h2>Resource types</h2><table><tr><th>Type</th><th>Count</th><th>Median</th><th>P95</th><th>Max</th></tr>';
   Object.entries(a.by_resource_type).forEach(([k,v])=>html+='<tr><td>'+esc(k)+'</td><td>'+v.count+'</td><td>'+v.median_ms+' ms</td><td>'+v.p95_ms+' ms</td><td>'+v.max_ms+' ms</td></tr>');
@@ -340,6 +350,16 @@ function render(d,real=false){
  document.getElementById('out').innerHTML=html;
 }
 function tableStages(rows){let h='<table><tr><th>Stage</th><th>Category</th><th>Duration</th><th>Share</th><th>Flags</th></tr>';rows.forEach(x=>h+='<tr><td>'+esc(x.name)+'</td><td><span class="badge">'+esc(x.category)+'</span></td><td>'+x.duration_ms.toFixed(0)+' ms</td><td>'+x.share_pct.toFixed(1)+'%<div class="bar"><div class="fill" style="width:'+Math.min(x.share_pct,100)+'%"></div></div></td><td>'+esc((x.blocking?'blocking ':'')+(x.parallelizable?'parallelization candidate':''))+'</td></tr>');return h+'</table>'}
+function waterfall(rows){
+ if(!rows.length)return '<div class="muted">Нет telemetry events.</div>';
+ const max=Math.max(...rows.map(x=>x.end_ms),1);
+ let h='<div class="waterfall">';
+ rows.slice(0,80).forEach(x=>{
+   const left=Math.max(0,x.start_ms/max*100), width=Math.max(0.4,x.duration_ms/max*100);
+   h+='<div class="wfrow"><span class="wflabel" title="'+esc(x.url)+'">'+esc(x.method+' '+x.resource_type+' '+x.url)+'</span><span class="track"><span class="block" style="left:'+left+'%;width:'+width+'%"></span></span> <span class="small">'+x.duration_ms.toFixed(0)+' ms</span></div>';
+ });
+ return h+'</div><p class="muted small">Показаны первые 80 событий по времени начала. Шкала нормирована на максимальный end timestamp.</p>';
+}
 function tableSlow(rows){let h='<table><tr><th>Duration</th><th>Status</th><th>Method</th><th>Type</th><th>URL</th></tr>';rows.forEach(x=>h+='<tr><td>'+x.duration_ms.toFixed(0)+' ms</td><td>'+esc(x.status)+'</td><td>'+esc(x.method)+'</td><td>'+esc(x.resource_type)+'</td><td class="small">'+esc(x.url)+'</td></tr>');return h+'</table>'}
 async function runDemo(){document.getElementById('status').textContent='Выполняется...';const r=await fetch('/api/demo');render(await r.json());document.getElementById('status').textContent='Готово: synthetic benchmark';}
 async function analyzeFile(){const f=document.getElementById('file').files[0];if(!f){alert('Выберите telemetry.json');return}const fd=new FormData();fd.append('file',f);document.getElementById('status').textContent='Загрузка telemetry...';const r=await fetch('/api/analyze-telemetry',{method:'POST',body:fd});const d=await r.json();if(!r.ok){alert(d.error||'Ошибка');return}render(d,true);document.getElementById('status').textContent='Готово: real telemetry';}
