@@ -145,6 +145,65 @@ def analyze(benchmark: Benchmark):
         "optimization": opt
     }
 
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard():
+    return HTMLResponse("""<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<title>Procurement Performance Analyzer — Dashboard</title>
+<style>
+*{box-sizing:border-box}body{font-family:Inter,Arial,sans-serif;margin:0;background:#f6f7f9;color:#17202a}
+.wrap{max-width:1280px;margin:0 auto;padding:28px}
+header{margin-bottom:20px}.muted{color:#667085}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:18px;margin:14px 0}
+.metric b{font-size:28px;display:block;margin-top:7px}
+button{background:#111827;color:#fff;border:0;border-radius:9px;padding:11px 17px;cursor:pointer}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:10px;border-bottom:1px solid #eee;text-align:left}
+.badge{padding:3px 8px;border-radius:20px;background:#eef2ff}.bar{height:16px;background:#edf0f3;border-radius:8px;overflow:hidden;min-width:160px}.fill{height:100%;background:#475467}
+.water{position:relative;height:330px;background:#fafafa;border:1px solid #eee;border-radius:10px;overflow:auto;padding:10px}
+.row{height:28px;position:relative;white-space:nowrap}.label{display:inline-block;width:290px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+.track{display:inline-block;width:650px;height:18px;vertical-align:middle;position:relative;background:#f0f2f5}
+.block{position:absolute;height:18px;background:#475467;border-radius:4px;min-width:2px}
+.notice{padding:12px 14px;background:#f8fafc;border-left:4px solid #475467;border-radius:6px}
+@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}.label{width:180px}.track{width:400px}}
+</style></head>
+<body><div class="wrap">
+<header>
+<h1>Procurement Performance Analyzer</h1>
+<div class="muted">Performance audit dashboard · synthetic demonstration</div>
+</header>
+<div class="card">
+<button onclick="loadDemo()">Run benchmark</button>
+<span id="status" class="muted" style="margin-left:12px">Ready</span>
+</div>
+<div id="out"></div>
+<script>
+async function loadDemo(){
+ const status=document.getElementById('status'); status.textContent='Analyzing...';
+ const r=await fetch('/api/demo'); const d=await r.json();
+ const max=Math.max(...d.bottlenecks.map(x=>x.duration_ms),1);
+ let html='<div class="grid">';
+ html+=metric('Baseline',(d.total_before/1000).toFixed(2)+' s');
+ html+=metric('Model after optimization',(d.total_after/1000).toFixed(2)+' s');
+ html+=metric('Model saving',d.saving_pct.toFixed(1)+'%');
+ html+=metric('Top bottleneck',d.bottlenecks[0]?.name||'-');
+ html+='</div>';
+ html+='<div class="card"><h2>Business-stage bottlenecks</h2><table><tr><th>Stage</th><th>Category</th><th>Duration</th><th>Share</th><th>Flags</th></tr>';
+ d.bottlenecks.forEach(x=>{
+   html+='<tr><td>'+esc(x.name)+'</td><td><span class="badge">'+esc(x.category)+'</span></td><td>'+x.duration_ms.toFixed(0)+' ms</td><td>'+x.share_pct.toFixed(1)+'% <div class="bar"><div class="fill" style="width:'+Math.min(x.share_pct,100)+'%"></div></div></td><td>'+(x.blocking?'blocking ':'')+(x.parallelizable?'candidate for parallelization':'')+'</td></tr>';
+ });
+ html+='</table></div>';
+ html+='<div class="card"><h2>Optimization hypotheses</h2><table><tr><th>Operation</th><th>Before</th><th>Model</th><th>Saving</th><th>Hypothesis</th></tr>';
+ d.optimization.forEach(x=>html+='<tr><td>'+esc(x.name)+'</td><td>'+x.before_ms.toFixed(0)+' ms</td><td>'+x.after_ms.toFixed(0)+' ms</td><td>'+x.saving_ms.toFixed(0)+' ms</td><td>'+esc(x.note)+'</td></tr>');
+ html+='</table></div>';
+ html+='<div class="card"><div class="notice"><b>Interpretation:</b> the optimization values are illustrative hypotheses. Production conclusions require real telemetry, repeated runs and validation against an authorized procurement-platform scenario.</div></div>';
+ document.getElementById('out').innerHTML=html; status.textContent='Complete';
+}
+function metric(a,b){return '<div class="card metric"><span class="muted">'+a+'</span><b>'+b+'</b></div>'}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+</script></div></body></html>""")
+
 @app.get("/health")
 def health():
     return {"status":"ok","service":"procurement-performance-analyzer"}
